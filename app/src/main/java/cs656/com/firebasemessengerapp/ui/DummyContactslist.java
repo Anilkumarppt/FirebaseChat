@@ -127,9 +127,14 @@ public class DummyContactslist extends AppCompatActivity {
         for (User userinfo : contactsList) {
             System.out.println("Mobile in contactlist" + userinfo.getMobile());
             String result = String.valueOf(userinfo.getMobile());
-            fbMobilelist.add("Mobile Numbsers" + result);
-        }
+            String userName=userinfo.getName();
+            String userEmail=userinfo.getEmail();
+            fbMobilelist.add("Mobile Numberss" + result);
+            fbMobilelist.add("Username "+userName);
+            fbMobilelist.add("Email"+userEmail);
 
+        }
+        System.out.println("fbData"+fbMobilelist.toString());
         for(int i=0;i<mobilelist.size();i++){
 
             for(int j=0;j<fbMobilelist.size();j++){
@@ -148,6 +153,7 @@ public class DummyContactslist extends AppCompatActivity {
         comparelist.clear();
         comparelist.addAll(linkedHashSet);
         Collections.sort(comparelist);
+        System.out.println(comparelist.toString());
        }
 
 
