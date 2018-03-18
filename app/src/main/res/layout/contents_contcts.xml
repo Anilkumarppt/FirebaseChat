@@ -6,12 +6,17 @@
     <TextView
         android:id="@+id/contct_name"
         android:layout_width="match_parent"
+        android:text="ContactName"
         android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:gravity="left"
         android:textColor="@color/authui_colorPrimary"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/contact_phone"
+            android:padding="16dp"
+            android:gravity="center"
             android:text="phonenumber"
             android:layout_marginStart="209dp"
             android:layout_alignParentTop="true"

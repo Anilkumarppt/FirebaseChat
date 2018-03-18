@@ -3,13 +3,11 @@ package cs656.com.firebasemessengerapp.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -27,12 +25,14 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.util.ArrayList;
+
 import cs656.com.firebasemessengerapp.R;
+import cs656.com.firebasemessengerapp.database.DatabaseHelper;
 import cs656.com.firebasemessengerapp.model.Chat;
 import cs656.com.firebasemessengerapp.model.Message;
 import cs656.com.firebasemessengerapp.model.User;
@@ -42,22 +42,22 @@ import jp.wasabeef.glide.transformations.CropCircleTransformation;
 
 public class ChatListActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
     public static final String ANONYMOUS = "anonymous";
     public static final int RC_SIGN_IN = 1;
-
+    private static final String TAG = "MainActivity";
+    String mCurrentemail;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private FirebaseAuth mFirebaseAuth;
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mChatDatabaseReference;
     private ChildEventListener mChildEventListener;
-
     private ListView mChatListView;
     private FirebaseListAdapter mChatAdapter;
     private String mUsername;
     private ValueEventListener mValueEventListener;
     private DatabaseReference mUserDatabaseReference;
     private ImageView addConversationButton;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,11 +65,9 @@ public class ChatListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
         //Initialize Firebase components
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
-
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -79,12 +77,16 @@ public class ChatListActivity extends AppCompatActivity {
                     //Nav to ChatListActivity
                     createUser(user);
                     onSignedInInitialize(user);
+                    mCurrentemail=mFirebaseAuth.getCurrentUser().getEmail();
+
+                    //getUserInformation();
+
+
                 } else {
                     // User is signed out
                     //onSignedOutCleanup();
-                    startActivityForResult(
-                            AuthUI.getInstance()
-                                    .createSignInIntentBuilder()
+
+                    startActivityForResult(AuthUI.getInstance().createSignInIntentBuilder()
                                     .setIsSmartLockEnabled(false)
                                     .setProviders(
                                             AuthUI.EMAIL_PROVIDER,
@@ -94,6 +96,39 @@ public class ChatListActivity extends AppCompatActivity {
                 }
             }
         };
+        }
+        private void getUserInformation(){
+      FirebaseDatabase mFirebasedatabase;
+            mFirebasedatabase=FirebaseDatabase.getInstance();
+            FirebaseAuth mAuth=FirebaseAuth.getInstance();
+            String currentMail=mAuth.getCurrentUser().getEmail();
+
+        DatabaseReference mUserRef;
+            System.out.println("Current Email"+currentMail);
+
+           mUserRef=mFirebasedatabase.getReference(Constants.USERS_LOCATION).child(EmailEncoding.commaEncodePeriod(currentMail));
+            mUserRef.child("userinfo").addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    for(DataSnapshot db :dataSnapshot.getChildren()){
+                        User user=dataSnapshot.getValue(User.class);
+                            String name=user.getName();
+                            String mobile=String.valueOf(user.getMobile());
+                            String email=user.getEmail();
+                            System.out.print("name at db"+name);
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
+                 }
+    @Override
+    protected void onStart() {
+        super.onStart();
+
     }
 
     public void createNewChat(View view){
@@ -127,14 +162,14 @@ public class ChatListActivity extends AppCompatActivity {
 
     private void onSignedInInitialize(FirebaseUser user) {
         mUsername = user.getDisplayName();
+        System.out.println("Display name"+mUsername);
         mChatDatabaseReference = mFirebaseDatabase.getReference()
                 .child(Constants.USERS_LOCATION
                         + "/" + EmailEncoding.commaEncodePeriod(user.getEmail()) + "/"
                         + Constants.CHAT_LOCATION );
         mUserDatabaseReference = mFirebaseDatabase.getReference()
                 .child(Constants.USERS_LOCATION);
-
-         hideShowAddChatButton(user);
+        hideShowAddChatButton(user);
 
         //Initialize screen variables
         mChatListView = (ListView) findViewById(R.id.chatListView);
@@ -145,7 +180,6 @@ public class ChatListActivity extends AppCompatActivity {
                 //Log.e("TAG", "");
                 //final Friend addFriend = new Friend(chat);
                 ((TextView) view.findViewById(R.id.messageTextView)).setText(chat.getChatName());
-
                 //Fetch last message from chat
                 final DatabaseReference messageRef =
                         mFirebaseDatabase.getReference(Constants.MESSAGE_LOCATION
@@ -153,14 +187,15 @@ public class ChatListActivity extends AppCompatActivity {
 
                 final TextView latestMessage = (TextView)view.findViewById(R.id.nameTextView);
                 final ImageView senderPic = (ImageView)view.findViewById(R.id.photoImageView);
-
                 messageRef.addChildEventListener(new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
                         Message newMsg = dataSnapshot.getValue(Message.class);
-                        latestMessage.setText(EmailEncoding.commaDecodePeriod(newMsg.getSender()) + ": " + newMsg.getMessage());
+                        System.out.println("message data"+newMsg.toString());
 
-                        mUserDatabaseReference.child(newMsg.getSender())
+                        latestMessage.setText(newMsg.getSenderName() + ": " + newMsg.getMessage());
+
+                        mUserDatabaseReference.child(EmailEncoding.commaEncodePeriod(newMsg.getSender()))
                                 .addValueEventListener(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -288,13 +323,13 @@ public class ChatListActivity extends AppCompatActivity {
         }
         if (id == R.id.listFriends) {
             //Open up activity where a user can add and view friends
-            Intent intent = new Intent(this, DummyContactslist.class);
+            Intent intent = new Intent(this, FriendsListActivity.class);
             startActivity(intent);
         }
 
-        if (id == R.id.profilePage) {
+        if (id == R.id.userslist) {
             //Open up activity where a user can add and view friends
-            Intent intent = new Intent(this, ProfileActivity.class);
+            Intent intent = new Intent(this, MutualContactActivity.class);
             startActivity(intent);
         }
 

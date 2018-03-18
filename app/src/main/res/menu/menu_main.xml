@@ -8,9 +8,9 @@
         android:title="@string/friends_list"
         app:showAsAction="never" />
     <item
-        android:id="@+id/profilePage"
+        android:id="@+id/userslist"
         android:orderInCategory="100"
-        android:title="Profile"
+        android:title="Mutual Friends"
         app:showAsAction="never" />
     <item
         android:id="@+id/sign_out"

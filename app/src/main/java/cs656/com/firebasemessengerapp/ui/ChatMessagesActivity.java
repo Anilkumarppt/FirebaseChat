@@ -1,11 +1,10 @@
 package cs656.com.firebasemessengerapp.ui;
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -13,19 +12,17 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,6 +30,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import com.bumptech.glide.Glide;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,23 +50,30 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import org.w3c.dom.Text;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import cs656.com.firebasemessengerapp.R;
+import cs656.com.firebasemessengerapp.model.ContactInfo;
 import cs656.com.firebasemessengerapp.model.Message;
+import cs656.com.firebasemessengerapp.model.MutualFriends;
 import cs656.com.firebasemessengerapp.model.User;
+import cs656.com.firebasemessengerapp.model.UserInfo;
+import cs656.com.firebasemessengerapp.utils.AppUtils;
 import cs656.com.firebasemessengerapp.utils.Constants;
 import cs656.com.firebasemessengerapp.utils.EmailEncoding;
 import jp.wasabeef.glide.transformations.CropCircleTransformation;
 
 public class ChatMessagesActivity extends AppCompatActivity {
 
+    private static final int GALLERY_INTENT=2;
+    private static final String LOG_TAG = "Record_log";
+    protected MyApplication myApplication;
+    TextView senderTime;
     private String messageId;
     private TextView mMessageField;
     private ImageButton mSendButton;
@@ -76,31 +81,28 @@ public class ChatMessagesActivity extends AppCompatActivity {
     private ListView mMessageList;
     private Toolbar mToolBar;
     private String currentUserEmail;
-
+    private String sendername;
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mMessageDatabaseReference;
     private DatabaseReference mUsersDatabaseReference;
     private FirebaseListAdapter<Message> mMessageListAdapter;
     private FirebaseAuth mFirebaseAuth;
-
     private ImageButton mphotoPickerButton;
-    private static final int GALLERY_INTENT=2;
     private StorageReference mStorage;
     private ProgressDialog mProgress;
-
     private ImageButton mrecordVoiceButton;
-    private TextView mRecordLable;
-
+    private TextView mRecordLable,timetext;
+    private List<MutualFriends> mutualFriendsList;
     private MediaRecorder mRecorder;
     private String mFileName = null;
-
-    private static final String LOG_TAG = "Record_log";
     private ValueEventListener mValueEventListener;
-
     //Audio Runtime Permissions
     private boolean permissionToRecordAccepted = false;
     private boolean permissionToWriteAccepted = false;
     private String [] permissions = {"android.permission.RECORD_AUDIO", "android.permission.WRITE_EXTERNAL_STORAGE"};
+    private String mCurrentUser;
+    private ArrayList<User> contactlist;
+    private ArrayList<ContactInfo> allContacts;
 
 
     @Override
@@ -122,12 +124,15 @@ public class ChatMessagesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.messages_activity);
 
+        allContacts = AppUtils.getAllContacts(getApplicationContext());
 
+        timetext= (TextView) findViewById(R.id.senderTime);
+        mutualFriendsList=new ArrayList<MutualFriends>();
         Intent intent = this.getIntent();
         //MessageID is the location of the messages for this specific chat
         messageId = intent.getStringExtra(Constants.MESSAGE_ID);
         chatName = intent.getStringExtra(Constants.CHAT_NAME);
-
+        myApplication =(MyApplication)getApplicationContext();
         if(messageId == null){
             finish(); // replace this.. nav user back to home
             return;
@@ -139,7 +144,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
             requestPermissions(permissions, requestCode);
         }
 
-
+        contactlist=new ArrayList<User>();
         initializeScreen();
         mToolBar.setTitle(chatName);
         showMessages();
@@ -149,7 +154,34 @@ public class ChatMessagesActivity extends AppCompatActivity {
 
     }
 
-    //Add listener for on completion of image selection
+
+    private void ischeck(String mSender) {
+
+
+            }
+
+
+        //Check the data in database
+        /*mCurrentUser=EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail().toString());
+        DatabaseReference mUserdatabaseref=FirebaseDatabase.getInstance().getReference(Constants.USERS_LOCATION).child(mCurrentUser);
+        mUserdatabaseref.child("contacts").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for(DataSnapshot db : dataSnapshot.getChildren()){
+                    System.out.println("value at database"+db.getValue().toString());
+
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+*/
+
+
+        //Add listener for on completion of image selection
     public void openImageSelector(){
         mphotoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
         mProgress = new ProgressDialog(this);
@@ -360,9 +392,31 @@ public class ChatMessagesActivity extends AppCompatActivity {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
         Date date = new Date();
         String timestamp = dateFormat.format(date);
+        DatabaseReference mUsernameRef;
+
+        mUsernameRef=FirebaseDatabase.getInstance().getReference(Constants.USERS_LOCATION).child(currentUserEmail);
+        mUsernameRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for(DataSnapshot db :dataSnapshot.getChildren()){
+                  /*  User users=db.getValue(User.class);
+                    sendername=users.getName();
+                    System.out.println("Sender Name"+sendername);
+               */ }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
         //Create message object with text/voice etc
-        Message message = new Message(EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail()), messageString, timestamp);
+        String mUsername=mFirebaseAuth.getCurrentUser().getDisplayName();
+
+        Message message = new Message(mUsername,EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail()), messageString, timestamp);
         //Create HashMap for Pushing
+        System.out.println("Display name from firebase"+mUsername);
         HashMap<String, Object> messageItemMap = new HashMap<String, Object>();
         HashMap<String,Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
                 .convertValue(message, Map.class);
@@ -383,40 +437,63 @@ public class ChatMessagesActivity extends AppCompatActivity {
                 LinearLayout messageLine = (LinearLayout) view.findViewById(R.id.messageLine);
                 TextView messgaeText = (TextView) view.findViewById(R.id.messageTextView);
                 TextView senderText = (TextView) view.findViewById(R.id.senderTextView);
+                TextView time_text= (TextView) view.findViewById(R.id.senderTime);
                 //TextView timeTextView = (TextView) view.findViewById(R.id.timeTextView);
                 final ImageView leftImage = (ImageView) view.findViewById(R.id.leftMessagePic);
                 final ImageView rightImage = (ImageView) view.findViewById(R.id.rightMessagePic);
                 LinearLayout individMessageLayout = (LinearLayout)view.findViewById(R.id.individMessageLayout);
 
                 //display timestamp correclty
-//                String time = message.getTimestamp();
-//                if(time != null && time != "" ) {
-//                    String ampm = "A.M.";
-//                    String hours = time.substring(0, 2);
-//                    String minutes = time.substring(3, 5);
-//                    int numHours = Integer.parseInt(hours);
-//                    if(numHours == 12){ //if numhours is 12 then its pm
-//                        ampm = "P.M.";
-//                    }
-//                    if (numHours > 12) {
-//                        numHours -= 12;
-//                        ampm = "P.M.";
-//                    }
-//                    if(numHours == 0){
-//                        numHours = 12;
-//                    }
-//                    hours = Integer.toString(numHours);
-//                    time = hours + ":" + minutes + " " + ampm;
-//                }
-//                timeTextView.setText(time);
+              /*  String time = message.getTimestamp();if(time != null && time != "" ) {
+                    String ampm = "A.M.";
+                    String hours = time.substring(0, 2);
+                    String minutes = time.substring(3, 5);
+                    int numHours = Integer.parseInt(hours);
+                    if(numHours == 12){ //if numhours is 12 then its pm
+                        ampm = "P.M.";
+                    }
+                    if (numHours > 12) {
+                        numHours -= 12;
+                        ampm = "P.M.";
+                    }
+                    if(numHours == 0){
+                        numHours = 12;
+                    }
+                    hours = Integer.toString(numHours);
+                    time = hours + ":" + minutes + " " + ampm;}
+*/
+                //time_text.setText(time);
 
+                final String sendername=message.getSenderName();
+                senderText.setText(message.getSenderName());
+                ArrayList<String> listCompare=new ArrayList<String>();
+              //  listCompare= myApplication.getFriendslist();
+              //  System.out.println("Size of the listCompare"+listCompare.size());
                 //set message and sender text
                 messgaeText.setText(message.getMessage());
-                senderText.setText(EmailEncoding.commaDecodePeriod(message.getSender()));
                 //If you sent this message, right align
                 String mSender = message.getSender();
 
+                ischeck(mSender);
+
+                boolean isNotInContact =isInContact();
+
+                String displayName;
+                if(isNotInContact){
+                    displayName = message.getSenderName();
+                }else {
+                    UserInfo userInfo = myApplication.getUserInfo(message.getSender());
+                    Log.d("MYTAG", "comparision: "+userInfo+"  msg"+message);
+                    if(userInfo !=null) {
+                        displayName = message.getSenderName()+" "+userInfo.getMobile();
+                    }else{
+                        displayName = message.getSenderName() + " " + message.getSender();
+                    }
+                }
+                senderText.setText(displayName);
+
                 if(mSender.equals(currentUserEmail)){
+
                     //messgaeText.setGravity(Gravity.RIGHT);
                     //senderText.setGravity(Gravity.RIGHT);
                     messageLine.setGravity(Gravity.RIGHT);
@@ -440,7 +517,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                                 }
                             }catch (Exception e){
                                 Log.e("ERR", e.toString());
-;                            }
+                                ;                            }
 
                         }
 
@@ -469,7 +546,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
 
 
                     //profile image back to here
-                    mUsersDatabaseReference.child(mSender).addValueEventListener(new ValueEventListener() {
+                    mUsersDatabaseReference.child(EmailEncoding.commaEncodePeriod(mSender)).addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             User userInfo = dataSnapshot.getValue(User.class);
@@ -548,6 +625,23 @@ public class ChatMessagesActivity extends AppCompatActivity {
             }
         };
         mMessageList.setAdapter(mMessageListAdapter);
+    }
+
+    private boolean isInContact(){
+        List<UserInfo> userList = myApplication.getUserList();
+        for(UserInfo userinfo : userList){//firebase contacts
+            for(ContactInfo contactInfo : allContacts){// phone contacts
+                String mobileContact = contactInfo.getMobile().replace(" ", "").replace("+91","");
+                String firebaseContact = userinfo.getMobile();
+                    if(!TextUtils.isEmpty(mobileContact)){
+                        if(mobileContact.equals(firebaseContact)){
+                            return true;
+                        }
+                    }
+                    /*hai*///hai app testing so many crashses
+            }
+        }
+        return false;
     }
 
     private void playSound(Uri uri){

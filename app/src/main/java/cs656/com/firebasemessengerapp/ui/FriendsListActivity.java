@@ -14,6 +14,7 @@ import com.bumptech.glide.Glide;
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.firebase.ui.storage.images.FirebaseImageLoader;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -49,8 +50,8 @@ public class FriendsListActivity extends AppCompatActivity {
     private DatabaseReference mUserDatabaseReference;
     private DatabaseReference mCurrentUsersFriends;
     private FirebaseAuth mFirebaseAuth;
-
-    private final List<User> mUsersFriends = new ArrayList<>();
+    String email;
+    private final List<String> mUsersFriends = new ArrayList<>();
     private String mCurrentUserEmail;
 
     @Override
@@ -63,22 +64,32 @@ public class FriendsListActivity extends AppCompatActivity {
 
         showUserList();
     }
+    private void onSignedInInitialize(FirebaseUser user){
 
+    }
     private void showUserList(){
+
         mFriendListAdapter = new FirebaseListAdapter<User>(this, User.class, R.layout.friend_item, mUserDatabaseReference) {
             @Override
-            protected void populateView(final View view, User user, final int position) {
-                Log.e("TAG", user.toString());
+            protected void populateView(final View view, final User user, final int position) {
+                TextView username= (TextView) view.findViewById(R.id.messageTextView);
 
-                final String email = EmailEncoding.commaEncodePeriod(user.getEmail());
+
+                //Log.e("TAG", user.toString());
+                if(user.getEmail()!=null) {
+                    email = user.getEmail();
+                }
+
                 //Check if this user is already your friend
                 final DatabaseReference friendRef =
                         mFirebaseDatabase.getReference(Constants.FRIENDS_LOCATION
                                 + "/" + mCurrentUserEmail + "/" + EmailEncoding.commaEncodePeriod(email));
-
+                System.out.println(mUserDatabaseReference);
                 friendRef.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
+
+                        // username.setText(EmailEncoding.commaDecodePeriod(email));
                         if(email.equals(mCurrentUserEmail)){
                             view.findViewById(R.id.addFriend).setVisibility(View.GONE);
                             view.findViewById(R.id.removeFriend).setVisibility(View.GONE);
@@ -114,18 +125,15 @@ public class FriendsListActivity extends AppCompatActivity {
                 (view.findViewById(R.id.addFriend)).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        final int position=mListView.getPositionForView(view) ;v.getParent();
                         Log.w(TAG, "Clicking row: " + position);
                         Log.w(TAG, "Clicking user: " + email);
                         //Add this user to your friends list, by email
-                        addNewFriend(email);
+                        addNewFriend(EmailEncoding.commaEncodePeriod(email));
                     }
                 });
                 (view.findViewById(R.id.removeFriend)).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        final int position=mListView.getPositionForView(view) ;v.getParent();
-
                         Log.w(TAG, "Clicking row: " + position);
                         Log.w(TAG, "Clicking user: " + email);
                         //Add this user to your friends list, by email
@@ -141,6 +149,7 @@ public class FriendsListActivity extends AppCompatActivity {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 User user = dataSnapshot.getValue(User.class);
+                System.out.print(user.toString());
                 if(user == null){
                     finish();
                     return;
@@ -172,7 +181,7 @@ public class FriendsListActivity extends AppCompatActivity {
         final DatabaseReference friendsRef = mFirebaseDatabase.getReference(Constants.FRIENDS_LOCATION
                 + "/" + EmailEncoding.commaEncodePeriod(userLoggedIn));
         //Add friends to current users friends list
-        friendsRef.child(newFriendEmail).setValue(newFriendEmail);
+        friendsRef.child(EmailEncoding.commaEncodePeriod(newFriendEmail)).setValue(EmailEncoding.commaEncodePeriod(newFriendEmail));
     }
 
     private void initializeScreen(){
@@ -182,7 +191,7 @@ public class FriendsListActivity extends AppCompatActivity {
         //Eventually this list will filter out users that are already your friend
         mUserDatabaseReference = mFirebaseDatabase.getReference().child(Constants.USERS_LOCATION);
         mCurrentUsersFriends = mFirebaseDatabase.getReference().child(Constants.FRIENDS_LOCATION
-                + "/" + EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail()));
+                + "/" + EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getDisplayName()));
 
         mListView = (ListView) findViewById(R.id.friendsListView);
         mToolBar = (Toolbar) findViewById(R.id.toolbar);

@@ -12,17 +12,39 @@ public class Message {
     private String contentType = "";
     private String contentLocation = "";
     private String timestamp = "";
-
+    private String senderName;
     public Message(){
 
     }
 
+    @Override
+    public String toString() {
+        return "Message{" +
+                "sender='" + sender + '\'' +
+                ", message='" + message + '\'' +
+                ", multimedia=" + multimedia +
+                ", contentType='" + contentType + '\'' +
+                ", contentLocation='" + contentLocation + '\'' +
+                ", timestamp='" + timestamp + '\'' +
+                ", senderName='" + senderName + '\'' +
+                '}';
+    }
+
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public void setSenderName(String sendername) {
+        this.senderName = sendername;
+    }
+
     //Constructor for plain text message
-    public Message(String sender, String message, String time){
+    public Message(String sendername,String sender, String message, String time){
         this.sender = sender;
         this.message = message;
         this.timestamp = time;
         this.multimedia = false;
+        this.senderName =sendername;
     }
 
     //Constructor for Multimedia message
@@ -54,4 +76,15 @@ public class Message {
     public String getContentType() {
         return contentType;
     }
-}
+    /*for(User user1 : list1) {
+        for(User user2 : list2) {
+            if(user1.getEmpCode().equals(user2.getEmpCode())) {
+                if(!user1.getFirstName().equals(user2.getFirstName()) ||
+                        !user1.getLastName().equals(user2.getLastName()) ||
+                        !user1.getEmail().equals(user2.getEmail())) {
+                    resultList.add(user1);
+                }
+            }
+        }
+    }
+*/}

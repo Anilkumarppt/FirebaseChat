@@ -112,9 +112,12 @@ public class ChatActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         User fUser = dataSnapshot.getValue(User.class);
+                        System.out.println("data from show friend list"+dataSnapshot.getValue().toString());
                         if(fUser != null){
-                            ((TextView) view.findViewById(R.id.messageTextView))
-                                    .setText(fUser.getName());
+                            if(fUser.getName()!=null) {
+                                ((TextView) view.findViewById(R.id.messageTextView))
+                                        .setText(EmailEncoding.commaDecodePeriod(fUser.getName()));
+                            }
                             if(fUser.getProfilePicLocation() != null && fUser.getProfilePicLocation().length() > 0){
                                 try{
                                     StorageReference storageRef = FirebaseStorage.getInstance()
@@ -233,8 +236,10 @@ public class ChatActivity extends AppCompatActivity {
 
         //Create corresponding message location for this chat
         String initialMessage = mFriendsInChat.getText().toString();
+        User user=new User();
+        System.out.println("Username in chat activity"+user.getName());
         Message initialMessages =
-                new Message("System", initialMessage, "");
+                new Message("System", initialMessage,user.getName(),"");
         final DatabaseReference initMsgRef =
                 mFirebaseDatabase.getReference(Constants.MESSAGE_LOCATION + "/" + pushKey);
         final DatabaseReference msgPush = initMsgRef.push();
