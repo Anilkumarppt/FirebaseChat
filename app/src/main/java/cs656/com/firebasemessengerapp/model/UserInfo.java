@@ -1,10 +1,13 @@
 package cs656.com.firebasemessengerapp.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * Created by swati on 3/14/2018.
  */
 
-public class UserInfo {
+public class UserInfo implements Parcelable {
     private String email,mobile,name;
 
     public UserInfo(){
@@ -39,4 +42,34 @@ public class UserInfo {
     public void setName(String name) {
         this.name = name;
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.email);
+        dest.writeString(this.mobile);
+        dest.writeString(this.name);
+    }
+
+    protected UserInfo(Parcel in) {
+        this.email = in.readString();
+        this.mobile = in.readString();
+        this.name = in.readString();
+    }
+
+    public static final Parcelable.Creator<UserInfo> CREATOR = new Parcelable.Creator<UserInfo>() {
+        @Override
+        public UserInfo createFromParcel(Parcel source) {
+            return new UserInfo(source);
+        }
+
+        @Override
+        public UserInfo[] newArray(int size) {
+            return new UserInfo[size];
+        }
+    };
 }

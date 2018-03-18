@@ -32,6 +32,7 @@ import android.widget.TextView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+
 import com.bumptech.glide.Glide;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.firebase.ui.database.FirebaseListAdapter;
@@ -70,7 +71,7 @@ import jp.wasabeef.glide.transformations.CropCircleTransformation;
 
 public class ChatMessagesActivity extends AppCompatActivity {
 
-    private static final int GALLERY_INTENT=2;
+    private static final int GALLERY_INTENT = 2;
     private static final String LOG_TAG = "Record_log";
     protected MyApplication myApplication;
     TextView senderTime;
@@ -91,7 +92,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
     private StorageReference mStorage;
     private ProgressDialog mProgress;
     private ImageButton mrecordVoiceButton;
-    private TextView mRecordLable,timetext;
+    private TextView mRecordLable, timetext;
     private List<MutualFriends> mutualFriendsList;
     private MediaRecorder mRecorder;
     private String mFileName = null;
@@ -99,7 +100,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
     //Audio Runtime Permissions
     private boolean permissionToRecordAccepted = false;
     private boolean permissionToWriteAccepted = false;
-    private String [] permissions = {"android.permission.RECORD_AUDIO", "android.permission.WRITE_EXTERNAL_STORAGE"};
+    private String[] permissions = {"android.permission.RECORD_AUDIO", "android.permission.WRITE_EXTERNAL_STORAGE"};
     private String mCurrentUser;
     private ArrayList<User> contactlist;
     private ArrayList<ContactInfo> allContacts;
@@ -108,14 +109,14 @@ public class ChatMessagesActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode){
+        switch (requestCode) {
             case 200:
-                permissionToRecordAccepted  = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-                permissionToWriteAccepted  = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                permissionToRecordAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                permissionToWriteAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
                 break;
         }
-        if (!permissionToRecordAccepted ) ChatMessagesActivity.super.finish();
-        if (!permissionToWriteAccepted ) ChatMessagesActivity.super.finish();
+        if (!permissionToRecordAccepted) ChatMessagesActivity.super.finish();
+        if (!permissionToWriteAccepted) ChatMessagesActivity.super.finish();
 
     }
 
@@ -124,16 +125,25 @@ public class ChatMessagesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.messages_activity);
 
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
         allContacts = AppUtils.getAllContacts(getApplicationContext());
 
-        timetext= (TextView) findViewById(R.id.senderTime);
-        mutualFriendsList=new ArrayList<MutualFriends>();
+        timetext = (TextView) findViewById(R.id.senderTime);
+        mutualFriendsList = new ArrayList<MutualFriends>();
         Intent intent = this.getIntent();
         //MessageID is the location of the messages for this specific chat
-        messageId = intent.getStringExtra(Constants.MESSAGE_ID);
-        chatName = intent.getStringExtra(Constants.CHAT_NAME);
-        myApplication =(MyApplication)getApplicationContext();
-        if(messageId == null){
+        UserInfo userInfo = intent.getExtras().getParcelable("info");
+        DatabaseReference reference = mFirebaseDatabase.getReference(Constants.CHAT_LOCATION);
+        if (userInfo != null) {
+            messageId = reference.push().getKey();
+            chatName = userInfo.getName();
+        } else {
+            messageId = intent.getStringExtra(Constants.MESSAGE_ID);
+            chatName = intent.getStringExtra(Constants.CHAT_NAME);
+        }
+
+        myApplication = (MyApplication) getApplicationContext();
+        if (messageId == null) {
             finish(); // replace this.. nav user back to home
             return;
         }
@@ -144,7 +154,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
             requestPermissions(permissions, requestCode);
         }
 
-        contactlist=new ArrayList<User>();
+        contactlist = new ArrayList<User>();
         initializeScreen();
         mToolBar.setTitle(chatName);
         showMessages();
@@ -158,10 +168,10 @@ public class ChatMessagesActivity extends AppCompatActivity {
     private void ischeck(String mSender) {
 
 
-            }
+    }
 
 
-        //Check the data in database
+    //Check the data in database
         /*mCurrentUser=EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail().toString());
         DatabaseReference mUserdatabaseref=FirebaseDatabase.getInstance().getReference(Constants.USERS_LOCATION).child(mCurrentUser);
         mUserdatabaseref.child("contacts").addValueEventListener(new ValueEventListener() {
@@ -181,13 +191,13 @@ public class ChatMessagesActivity extends AppCompatActivity {
 */
 
 
-        //Add listener for on completion of image selection
-    public void openImageSelector(){
+    //Add listener for on completion of image selection
+    public void openImageSelector() {
         mphotoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
         mProgress = new ProgressDialog(this);
-        mphotoPickerButton.setOnClickListener(new View.OnClickListener(){
+        mphotoPickerButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view){
+            public void onClick(View view) {
                 Intent intent = new Intent(Intent.ACTION_PICK);
                 intent.setType("image/*");
                 startActivityForResult(intent, GALLERY_INTENT);
@@ -197,12 +207,12 @@ public class ChatMessagesActivity extends AppCompatActivity {
 
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, final Intent data){
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
 
         mStorage = FirebaseStorage.getInstance().getReference(); //make global
         super.onActivityResult(requestCode, requestCode, data);
 
-        if(requestCode ==GALLERY_INTENT && resultCode == RESULT_OK){
+        if (requestCode == GALLERY_INTENT && resultCode == RESULT_OK) {
 
             mProgress.setMessage("Sending the image...");
             mProgress.show();
@@ -226,25 +236,24 @@ public class ChatMessagesActivity extends AppCompatActivity {
 
     }
 
-    public void openVoiceRecorder(){
+    public void openVoiceRecorder() {
         //Implement voice selection
-        mrecordVoiceButton =(ImageButton) findViewById(R.id.recordVoiceButton);
+        mrecordVoiceButton = (ImageButton) findViewById(R.id.recordVoiceButton);
         mRecordLable = (TextView) findViewById(R.id.recordLable);
 
         mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
         mFileName += "/recorded_audio.3gp";
 
-        mrecordVoiceButton.setOnTouchListener(new View.OnTouchListener(){
+        mrecordVoiceButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public boolean onTouch(View view, MotionEvent motionEvent){
+            public boolean onTouch(View view, MotionEvent motionEvent) {
 
-                if(motionEvent.getAction() == MotionEvent.ACTION_DOWN){
+                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
 
                     startRecording();
 
                     mRecordLable.setText("Recording started...");
-                }
-                else if (motionEvent.getAction() == MotionEvent.ACTION_UP){
+                } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
 
                     stopRecording();
 
@@ -308,7 +317,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
         });
     }
 
-    public void addListeners(){
+    public void addListeners() {
         mMessageField.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -330,7 +339,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
     }
 
     //If voice message add them to Firebase.Storage
-    public void addVoiceToMessages(String voiceLocation){
+    public void addVoiceToMessages(String voiceLocation) {
         final DatabaseReference pushRef = mMessageDatabaseReference.push();
         final String pushKey = pushRef.getKey();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
@@ -342,7 +351,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                         "Message: Voice Sent", "VOICE", voiceLocation, timestamp);
         //Create HashMap for Pushing
         HashMap<String, Object> messageItemMap = new HashMap<String, Object>();
-        HashMap<String,Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
+        HashMap<String, Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
                 .convertValue(message, Map.class);
         messageItemMap.put("/" + pushKey, messageObj);
         mMessageDatabaseReference.updateChildren(messageItemMap)
@@ -356,7 +365,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
 
 
     //Send image messages from here
-    public void addImageToMessages(String imageLocation){
+    public void addImageToMessages(String imageLocation) {
         final DatabaseReference pushRef = mMessageDatabaseReference.push();
         final String pushKey = pushRef.getKey();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
@@ -368,7 +377,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                         "Message: Image Sent", "IMAGE", imageLocation, timestamp);
         //Create HashMap for Pushing
         HashMap<String, Object> messageItemMap = new HashMap<String, Object>();
-        HashMap<String,Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
+        HashMap<String, Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
                 .convertValue(message, Map.class);
         messageItemMap.put("/" + pushKey, messageObj);
         mMessageDatabaseReference.updateChildren(messageItemMap)
@@ -381,8 +390,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
     }
 
 
-
-    public void sendMessage(View view){
+    public void sendMessage(View view) {
         //final DatabaseReference messageRef = mFirebaseDatabase.getReference(Constants.MESSAGE_LOCATION);
         final DatabaseReference pushRef = mMessageDatabaseReference.push();
         final String pushKey = pushRef.getKey();
@@ -394,15 +402,16 @@ public class ChatMessagesActivity extends AppCompatActivity {
         String timestamp = dateFormat.format(date);
         DatabaseReference mUsernameRef;
 
-        mUsernameRef=FirebaseDatabase.getInstance().getReference(Constants.USERS_LOCATION).child(currentUserEmail);
+        mUsernameRef = FirebaseDatabase.getInstance().getReference(Constants.USERS_LOCATION).child(currentUserEmail);
         mUsernameRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for(DataSnapshot db :dataSnapshot.getChildren()){
+                for (DataSnapshot db : dataSnapshot.getChildren()) {
                   /*  User users=db.getValue(User.class);
                     sendername=users.getName();
                     System.out.println("Sender Name"+sendername);
-               */ }
+               */
+                }
             }
 
             @Override
@@ -412,13 +421,13 @@ public class ChatMessagesActivity extends AppCompatActivity {
         });
 
         //Create message object with text/voice etc
-        String mUsername=mFirebaseAuth.getCurrentUser().getDisplayName();
+        String mUsername = mFirebaseAuth.getCurrentUser().getDisplayName();
 
-        Message message = new Message(mUsername,EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail()), messageString, timestamp);
+        Message message = new Message(mUsername, EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail()), messageString, timestamp);
         //Create HashMap for Pushing
-        System.out.println("Display name from firebase"+mUsername);
+        System.out.println("Display name from firebase" + mUsername);
         HashMap<String, Object> messageItemMap = new HashMap<String, Object>();
-        HashMap<String,Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
+        HashMap<String, Object> messageObj = (HashMap<String, Object>) new ObjectMapper()
                 .convertValue(message, Map.class);
         messageItemMap.put("/" + pushKey, messageObj);
         mMessageDatabaseReference.updateChildren(messageItemMap)
@@ -437,11 +446,11 @@ public class ChatMessagesActivity extends AppCompatActivity {
                 LinearLayout messageLine = (LinearLayout) view.findViewById(R.id.messageLine);
                 TextView messgaeText = (TextView) view.findViewById(R.id.messageTextView);
                 TextView senderText = (TextView) view.findViewById(R.id.senderTextView);
-                TextView time_text= (TextView) view.findViewById(R.id.senderTime);
+                TextView time_text = (TextView) view.findViewById(R.id.senderTime);
                 //TextView timeTextView = (TextView) view.findViewById(R.id.timeTextView);
                 final ImageView leftImage = (ImageView) view.findViewById(R.id.leftMessagePic);
                 final ImageView rightImage = (ImageView) view.findViewById(R.id.rightMessagePic);
-                LinearLayout individMessageLayout = (LinearLayout)view.findViewById(R.id.individMessageLayout);
+                LinearLayout individMessageLayout = (LinearLayout) view.findViewById(R.id.individMessageLayout);
 
                 //display timestamp correclty
               /*  String time = message.getTimestamp();if(time != null && time != "" ) {
@@ -464,35 +473,30 @@ public class ChatMessagesActivity extends AppCompatActivity {
 */
                 //time_text.setText(time);
 
-                final String sendername=message.getSenderName();
                 senderText.setText(message.getSenderName());
-                ArrayList<String> listCompare=new ArrayList<String>();
-              //  listCompare= myApplication.getFriendslist();
-              //  System.out.println("Size of the listCompare"+listCompare.size());
-                //set message and sender text
                 messgaeText.setText(message.getMessage());
                 //If you sent this message, right align
                 String mSender = message.getSender();
 
                 ischeck(mSender);
 
-                boolean isNotInContact =isInContact();
+                boolean isNotInContact = !isInContact();
 
                 String displayName;
-                if(isNotInContact){
+                if (isNotInContact) {
                     displayName = message.getSenderName();
-                }else {
+                } else {
                     UserInfo userInfo = myApplication.getUserInfo(message.getSender());
-                    Log.d("MYTAG", "comparision: "+userInfo+"  msg"+message);
-                    if(userInfo !=null) {
-                        displayName = message.getSenderName()+" "+userInfo.getMobile();
-                    }else{
+                    Log.d("MYTAG", "comparision: " + userInfo + "  msg" + message);
+                    if (userInfo != null) {
+                        displayName = message.getSenderName() + " " + userInfo.getMobile();
+                    } else {
                         displayName = message.getSenderName() + " " + message.getSender();
                     }
                 }
                 senderText.setText(displayName);
 
-                if(mSender.equals(currentUserEmail)){
+                if (mSender.equals(currentUserEmail)) {
 
                     //messgaeText.setGravity(Gravity.RIGHT);
                     //senderText.setGravity(Gravity.RIGHT);
@@ -505,8 +509,8 @@ public class ChatMessagesActivity extends AppCompatActivity {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             User userInfo = dataSnapshot.getValue(User.class);
-                            try{
-                                if(userInfo != null && userInfo.getProfilePicLocation() != null){
+                            try {
+                                if (userInfo != null && userInfo.getProfilePicLocation() != null) {
                                     StorageReference storageRef = FirebaseStorage.getInstance()
                                             .getReference().child(userInfo.getProfilePicLocation());
                                     Glide.with(view.getContext())
@@ -515,9 +519,10 @@ public class ChatMessagesActivity extends AppCompatActivity {
                                             .bitmapTransform(new CropCircleTransformation(view.getContext()))
                                             .into(rightImage);
                                 }
-                            }catch (Exception e){
+                            } catch (Exception e) {
                                 Log.e("ERR", e.toString());
-                                ;                            }
+                                ;
+                            }
 
                         }
 
@@ -530,11 +535,11 @@ public class ChatMessagesActivity extends AppCompatActivity {
                     individMessageLayout.setBackgroundResource(R.drawable.roundedmessagescolored);
                     //messgaeText.setBackgroundColor(ResourcesCompat.getColor(getResources(),
                     //       R.color.colorAccent, null));
-                }else if(mSender.equals("System")){
+                } else if (mSender.equals("System")) {
                     messageLine.setGravity(Gravity.CENTER_HORIZONTAL);
                     leftImage.setVisibility(View.GONE);
                     rightImage.setVisibility(View.GONE);
-                }else{
+                } else {
                     //messgaeText.setGravity(Gravity.LEFT);
                     //senderText.setGravity(Gravity.LEFT);
                     messageLine.setGravity(Gravity.LEFT);
@@ -550,8 +555,8 @@ public class ChatMessagesActivity extends AppCompatActivity {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             User userInfo = dataSnapshot.getValue(User.class);
-                            if(userInfo != null && userInfo.getProfilePicLocation() != null){
-                                try{
+                            if (userInfo != null && userInfo.getProfilePicLocation() != null) {
+                                try {
                                     StorageReference storageRef = FirebaseStorage.getInstance()
                                             .getReference().child(userInfo.getProfilePicLocation());
                                     Glide.with(view.getContext())
@@ -559,7 +564,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                                             .load(storageRef)
                                             .bitmapTransform(new CropCircleTransformation(view.getContext()))
                                             .into(leftImage);
-                                }catch(Exception e){
+                                } catch (Exception e) {
                                     Log.e("Err", e.toString());
                                 }
                             }
@@ -575,8 +580,8 @@ public class ChatMessagesActivity extends AppCompatActivity {
                 //If this is multimedia display it
                 final ImageView imageView = (ImageView) view.findViewById(R.id.imageMessage);
                 final ImageButton activateVoiceMsg = (ImageButton) view.findViewById(R.id.voiceMessageButton);
-                if(message.getMultimedia()){
-                    if(message.getContentType().equals("IMAGE")) {
+                if (message.getMultimedia()) {
+                    if (message.getContentType().equals("IMAGE")) {
                         StorageReference storageRef = FirebaseStorage.getInstance()
                                 .getReference().child(message.getContentLocation());
                         imageView.setVisibility(View.VISIBLE);
@@ -588,7 +593,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                                 .load(storageRef)
                                 .into(imageView);
                     }
-                    if(message.getContentType().equals("VOICE")) {
+                    if (message.getContentType().equals("VOICE")) {
                         //show play button
                         activateVoiceMsg.setVisibility(View.VISIBLE);
                         //hide imageview
@@ -616,7 +621,7 @@ public class ChatMessagesActivity extends AppCompatActivity {
                             }
                         });
                     }
-                }else{
+                } else {
                     activateVoiceMsg.setVisibility(View.GONE);
                     activateVoiceMsg.setImageDrawable(null);
                     imageView.setVisibility(View.GONE);
@@ -627,29 +632,29 @@ public class ChatMessagesActivity extends AppCompatActivity {
         mMessageList.setAdapter(mMessageListAdapter);
     }
 
-    private boolean isInContact(){
+    private boolean isInContact() {
         List<UserInfo> userList = myApplication.getUserList();
-        for(UserInfo userinfo : userList){//firebase contacts
-            for(ContactInfo contactInfo : allContacts){// phone contacts
-                String mobileContact = contactInfo.getMobile().replace(" ", "").replace("+91","");
+        for (UserInfo userinfo : userList) {//firebase contacts
+            for (ContactInfo contactInfo : allContacts) {// phone contacts
+                String mobileContact = contactInfo.getMobile().replace(" ", "").replace("+91", "");
                 String firebaseContact = userinfo.getMobile();
-                    if(!TextUtils.isEmpty(mobileContact)){
-                        if(mobileContact.equals(firebaseContact)){
-                            return true;
-                        }
+                if (!TextUtils.isEmpty(mobileContact)) {
+                    if (mobileContact.equals(firebaseContact)) {
+                        return true;
                     }
+                }
                     /*hai*///hai app testing so many crashses
             }
         }
         return false;
     }
 
-    private void playSound(Uri uri){
+    private void playSound(Uri uri) {
         MediaPlayer mediaPlayer = new MediaPlayer();
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             mediaPlayer.setDataSource(uri.toString());
-        }catch(Exception e){
+        } catch (Exception e) {
 
         }
         mediaPlayer.prepareAsync();
@@ -674,10 +679,9 @@ public class ChatMessagesActivity extends AppCompatActivity {
     private void initializeScreen() {
         mMessageList = (ListView) findViewById(R.id.messageListView);
         mToolBar = (Toolbar) findViewById(R.id.toolbar);
-        mMessageField = (TextView)findViewById(R.id.messageToSend);
-        mSendButton = (ImageButton)findViewById(R.id.sendButton);
+        mMessageField = (TextView) findViewById(R.id.messageToSend);
+        mSendButton = (ImageButton) findViewById(R.id.sendButton);
 
-        mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
         currentUserEmail = EmailEncoding.commaEncodePeriod(mFirebaseAuth.getCurrentUser().getEmail());
         mUsersDatabaseReference = mFirebaseDatabase.getReference().child(Constants.USERS_LOCATION);
