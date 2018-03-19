@@ -10,6 +10,15 @@ import android.os.Parcelable;
 public class UserInfo implements Parcelable {
     private String email,mobile,name;
 
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "email='" + email + '\'' +
+                ", mobile='" + mobile + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
     public UserInfo(){
 
     }

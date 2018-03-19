@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -34,10 +36,14 @@ import java.util.List;
 import java.util.Map;
 
 import cs656.com.firebasemessengerapp.R;
+import cs656.com.firebasemessengerapp.adapter.FriendsAdapter;
 import cs656.com.firebasemessengerapp.model.Chat;
+import cs656.com.firebasemessengerapp.model.ContactInfo;
 import cs656.com.firebasemessengerapp.model.Friend;
 import cs656.com.firebasemessengerapp.model.Message;
 import cs656.com.firebasemessengerapp.model.User;
+import cs656.com.firebasemessengerapp.model.UserInfo;
+import cs656.com.firebasemessengerapp.utils.AppUtils;
 import cs656.com.firebasemessengerapp.utils.Constants;
 import cs656.com.firebasemessengerapp.utils.EmailEncoding;
 import jp.wasabeef.glide.transformations.CropCircleTransformation;
@@ -68,14 +74,55 @@ public class ChatActivity extends AppCompatActivity {
     private Chat mChat;
     private DatabaseReference mUserDatabaseRef;
     private ImageButton mCreateButton;
+    private ArrayList<ContactInfo> allContacts;
+    private ArrayAdapter arrayadapter;
 
+    //getting data from Myphone numbers
+    MyApplication myApplication;
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_chat);
+        myApplication= (MyApplication) getApplicationContext();
         initializeScreen();
+        allContacts= AppUtils.getAllContacts(getApplicationContext());
+        ArrayList<UserInfo> mutualContactsDetails = getMutualContactsDetails();
+        Log.d("Mutual Contacts List",mutualContactsDetails+"");
+        FriendsAdapter friendsAdapter = new FriendsAdapter(this);
+        friendsAdapter.setMutualFriendsArrayList(mutualContactsDetails);
+    //    mListView.setAdapter(friendsAdapter);
+
         showFriendsList();
         addListeners();
+       // showMutualFreinds();
+    }
+
+    private ArrayList<UserInfo> getMutualContactsDetails() {
+        ArrayList<UserInfo> mutualContacts = new ArrayList<>();
+
+        List<UserInfo> userList = myApplication.getUserList();
+        for(UserInfo userinfo : userList){//firebase contacts
+            for(ContactInfo contactInfo : allContacts){// phone contacts
+                String mobileContact = contactInfo.getMobile()
+                        .replace("-", "").replace("(", "").replace(")", "").replace(" ", "").replace("+91","");
+                String firebaseContact = userinfo.getMobile()
+                        .replace("-", "")
+                        .replace("(", "").replace(")", "").replace(" ", "").replace("+91","");
+                if(!TextUtils.isEmpty(mobileContact)){
+                    if(mobileContact.equals(firebaseContact)){
+                        mutualContacts.add(userinfo);
+                        break;
+                    }
+                }
+                    /*hai*///hai app testing so many crashses
+            }
+        }
+        return mutualContacts;
+
+    }
+
+    private void showMutualFreinds() {
+
     }
 
     private void addListeners(){
@@ -98,7 +145,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
-
     private void showFriendsList() {
         //TODO: This list should not show your own userid..
         mFriendListAdapter = new FirebaseListAdapter<String>(this, String.class, R.layout.friend_item, mFriendsLocationDatabaseReference) {
@@ -108,11 +154,11 @@ public class ChatActivity extends AppCompatActivity {
                 final Friend addFriend = new Friend(friend);
                 ((TextView) view.findViewById(R.id.nameTextView)).setText(EmailEncoding.commaDecodePeriod(friend));
 
-                mUserDatabaseRef.child(friend).addValueEventListener(new ValueEventListener() {
+                mUserDatabaseRef.child(EmailEncoding.commaEncodePeriod(friend)).addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         User fUser = dataSnapshot.getValue(User.class);
-                        System.out.println("data from show friend list"+dataSnapshot.getValue().toString());
+                      //  System.out.println("data from show friend list"+dataSnapshot.getValue().toString());
                         if(fUser != null){
                             if(fUser.getName()!=null) {
                                 ((TextView) view.findViewById(R.id.messageTextView))
@@ -133,7 +179,7 @@ public class ChatActivity extends AppCompatActivity {
                             }
                         }else{
                             ((TextView) view.findViewById(R.id.messageTextView))
-                                    .setText("A girl has no name");
+                                    .setText("");
                         }
                     }
 
@@ -213,7 +259,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
-
     //TODO: Add create new Chat function
     public void createChat(View view){
         //final String userLoggedIn = mFirebaseAuth.getCurrentUser().getEmail();

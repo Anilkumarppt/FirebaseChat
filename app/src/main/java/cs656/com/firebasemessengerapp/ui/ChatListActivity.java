@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -34,6 +35,7 @@ import java.util.ArrayList;
 import cs656.com.firebasemessengerapp.R;
 import cs656.com.firebasemessengerapp.database.DatabaseHelper;
 import cs656.com.firebasemessengerapp.model.Chat;
+import cs656.com.firebasemessengerapp.model.ContactInfo;
 import cs656.com.firebasemessengerapp.model.Message;
 import cs656.com.firebasemessengerapp.model.User;
 import cs656.com.firebasemessengerapp.utils.Constants;
@@ -58,6 +60,8 @@ public class ChatListActivity extends AppCompatActivity {
     private DatabaseReference mUserDatabaseReference;
     private ImageView addConversationButton;
     private FirebaseAuth mAuth;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,7 +173,7 @@ public class ChatListActivity extends AppCompatActivity {
                         + Constants.CHAT_LOCATION );
         mUserDatabaseReference = mFirebaseDatabase.getReference()
                 .child(Constants.USERS_LOCATION);
-        hideShowAddChatButton(user);
+        //hideShowAddChatButton(user);
 
         //Initialize screen variables
         mChatListView = (ListView) findViewById(R.id.chatListView);
