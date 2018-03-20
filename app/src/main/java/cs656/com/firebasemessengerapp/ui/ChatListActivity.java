@@ -9,7 +9,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -30,12 +29,9 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
-import java.util.ArrayList;
-
 import cs656.com.firebasemessengerapp.R;
-import cs656.com.firebasemessengerapp.database.DatabaseHelper;
+import cs656.com.firebasemessengerapp.RegistrationActivity;
 import cs656.com.firebasemessengerapp.model.Chat;
-import cs656.com.firebasemessengerapp.model.ContactInfo;
 import cs656.com.firebasemessengerapp.model.Message;
 import cs656.com.firebasemessengerapp.model.User;
 import cs656.com.firebasemessengerapp.utils.Constants;
@@ -101,34 +97,7 @@ public class ChatListActivity extends AppCompatActivity {
             }
         };
         }
-        private void getUserInformation(){
-      FirebaseDatabase mFirebasedatabase;
-            mFirebasedatabase=FirebaseDatabase.getInstance();
-            FirebaseAuth mAuth=FirebaseAuth.getInstance();
-            String currentMail=mAuth.getCurrentUser().getEmail();
 
-        DatabaseReference mUserRef;
-            System.out.println("Current Email"+currentMail);
-
-           mUserRef=mFirebasedatabase.getReference(Constants.USERS_LOCATION).child(EmailEncoding.commaEncodePeriod(currentMail));
-            mUserRef.child("userinfo").addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    for(DataSnapshot db :dataSnapshot.getChildren()){
-                        User user=dataSnapshot.getValue(User.class);
-                            String name=user.getName();
-                            String mobile=String.valueOf(user.getMobile());
-                            String email=user.getEmail();
-                            System.out.print("name at db"+name);
-                    }
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-
-                }
-            });
-                 }
     @Override
     protected void onStart() {
         super.onStart();
@@ -166,7 +135,6 @@ public class ChatListActivity extends AppCompatActivity {
 
     private void onSignedInInitialize(FirebaseUser user) {
         mUsername = user.getDisplayName();
-        System.out.println("Display name"+mUsername);
         mChatDatabaseReference = mFirebaseDatabase.getReference()
                 .child(Constants.USERS_LOCATION
                         + "/" + EmailEncoding.commaEncodePeriod(user.getEmail()) + "/"
@@ -325,9 +293,9 @@ public class ChatListActivity extends AppCompatActivity {
             AuthUI.getInstance()
                     .signOut(this);
         }
-        if (id == R.id.listFriends) {
+        if (id == R.id.addUserInfo) {
             //Open up activity where a user can add and view friends
-            Intent intent = new Intent(this, FriendsListActivity.class);
+            Intent intent = new Intent(this, RegistrationActivity.class);
             startActivity(intent);
         }
 

@@ -179,7 +179,7 @@ public class ChatActivity extends AppCompatActivity {
                             }
                         }else{
                             ((TextView) view.findViewById(R.id.messageTextView))
-                                    .setText("");
+                                    .setText("Default");
                         }
                     }
 
@@ -268,6 +268,8 @@ public class ChatActivity extends AppCompatActivity {
         final DatabaseReference messageRef = mFirebaseDatabase.getReference(Constants.MESSAGE_LOCATION);
         final DatabaseReference pushRef = chatRef.push();
         final String pushKey = pushRef.getKey();
+        Log.e(TAG, "Push key is: " + pushKey);
+        Log.e(TAG, "Push key is: " + pushKey);
         mChat.setUid(pushKey);
         mChat.setChatName(mChatName.getText().toString());
         Log.e(TAG, "Push key is: " + pushKey);

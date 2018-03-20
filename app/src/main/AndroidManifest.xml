@@ -59,7 +59,9 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <activity android:name=".ui.MutualContactActivity"></activity>
+        <activity android:name=".ui.MutualContactActivity" />
+        <activity android:name=".RegistrationActivity"></activity>
+        <activity android:name=".utils.CreateChatActivity"/>
     </application>
 
 </manifest>

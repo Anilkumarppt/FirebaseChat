@@ -29,6 +29,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -451,7 +452,15 @@ public class ChatMessagesActivity extends AppCompatActivity {
                 final ImageView leftImage = (ImageView) view.findViewById(R.id.leftMessagePic);
                 final ImageView rightImage = (ImageView) view.findViewById(R.id.rightMessagePic);
                 LinearLayout individMessageLayout = (LinearLayout) view.findViewById(R.id.individMessageLayout);
-
+                Log.d("Time",message.getTimestamp());
+                try {
+                    final SimpleDateFormat sdf = new SimpleDateFormat("H:mm");
+                    final Date dateObj = sdf.parse(message.getTimestamp());
+                    System.out.println(dateObj);
+                    System.out.println(new SimpleDateFormat("K:mm").format(dateObj));
+                } catch (final ParseException e) {
+                    e.printStackTrace();
+                }
                 //display timestamp correclty
               /*  String time = message.getTimestamp();if(time != null && time != "" ) {
                     String ampm = "A.M.";
